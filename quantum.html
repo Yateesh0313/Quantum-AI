@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚛ Quantum Policy Search</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+      background: linear-gradient(135deg, #a5f3fc, #bfdbfe, #c7d2fe);
+      min-height: 100vh;
+      color: #1e293b;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 1rem;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .chart-box {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="flex justify-center items-start py-10 px-4">
+  <div class="w-full max-w-6xl">
+    <header class="text-center mb-10">
+      <h1 class="text-4xl font-bold text-cyan-800 mb-2">⚛ Quantum Policy Search</h1>
+      <p class="text-gray-700">Explore and visualize education policies with quantum-enhanced semantic search</p>
+    </header>
+
+    <!-- Search Section -->
+    <form method="post" action="/quantum_search"
+      class="flex flex-col sm:flex-row justify-center gap-3 mb-10 max-w-3xl mx-auto">
+      <input type="text" name="query" value="{{ query or '' }}"
+        placeholder="Search for a policy (e.g. teacher training, digital education)..."
+        class="flex-1 border border-gray-300 rounded-lg p-3 shadow-sm focus:ring-2 focus:ring-cyan-400 bg-white" required>
+      <button type="submit"
+        class="bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-3 rounded-lg shadow-md transition">
+        🔍 Search
+      </button>
+    </form>
+
+    {% if query %}
+    <p class="text-center text-gray-700 mb-6">Showing results for:
+      <span class="font-semibold text-cyan-700">“{{ query }}”</span>
+    </p>
+    {% endif %}
+
+    <!-- Results Section -->
+    {% if results %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-14 fade-in">
+      {% for r in results %}
+      <div class="card">
+        <h2 class="text-xl font-bold text-cyan-800 mb-2">{{ r.title }}</h2>
+        <p class="text-sm text-gray-600 mb-1">🌍 {{ r.region }} | 📅 {{ r.year }}</p>
+        <p class="text-gray-700 text-sm mb-2">{{ r.text }}...</p>
+        <span class="bg-cyan-600 px-3 py-1 rounded-full text-xs text-white font-semibold">
+          Relevance: {{ r.score }}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Visualization Section -->
+    <section class="mt-8">
+      <h2 class="text-2xl font-bold text-center text-cyan-800 mb-6">📊 Insights from Quantum Search</h2>
+
+      <div class="flex flex-col gap-10 items-center">
+        <!-- Relevance Chart -->
+        <div class="chart-box w-full max-w-3xl">
+          <h3 class="text-center font-semibold text-gray-700 mb-3">Relevance Score Distribution</h3>
+          <canvas id="relevanceChart" height="120"></canvas>
+        </div>
+
+        <!-- Region Chart -->
+        <div class="chart-box w-full max-w-3xl">
+          <h3 class="text-center font-semibold text-gray-700 mb-3">Region-wise Policies</h3>
+          <canvas id="regionChart" height="120"></canvas>
+        </div>
+
+        <!-- Year Chart -->
+        <div class="chart-box w-full max-w-3xl">
+          <h3 class="text-center font-semibold text-gray-700 mb-3">Policy Distribution by Year</h3>
+          <canvas id="yearChart" height="120"></canvas>
+        </div>
+      </div>
+    </section>
+    {% elif query %}
+    <p class="text-center text-gray-600 mt-8">No results found for your query.</p>
+    {% endif %}
+
+    <footer class="mt-16 text-center text-gray-500 text-sm">
+      © 2025 PolicyNav | Powered by Quantum Intelligence ⚛
+    </footer>
+  </div>
+
+  {% if results %}
+  <script>
+    const scoresData = {{ scores_data | tojson | safe }};
+    const regionData = {{ region_data | tojson | safe }};
+    const yearData = {{ year_data | tojson | safe }};
+
+    // Chart 1: Relevance (Line)
+    new Chart(document.getElementById("relevanceChart"), {
+      type: "line",
+      data: {
+        labels: Object.keys(scoresData),
+        datasets: [{
+          label: "Relevance Score",
+          data: Object.values(scoresData),
+          borderColor: "#06b6d4",
+          backgroundColor: "rgba(6,182,212,0.3)",
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: "#0284c7"
+        }]
+      },
+      options: {
+        scales: { y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" } } },
+        plugins: { legend: { display: false } },
+        responsive: true
+      }
+    });
+
+    // Chart 2: Region (Pie)
+    new Chart(document.getElementById("regionChart"), {
+      type: "pie",
+      data: {
+        labels: Object.keys(regionData),
+        datasets: [{
+          data: Object.values(regionData),
+          backgroundColor: ["#0ea5e9","#22d3ee","#67e8f9","#bae6fd","#38bdf8"]
+        }]
+      },
+      options: {
+        plugins: { legend: { position: "bottom" } },
+        responsive: true
+      }
+    });
+
+    // Chart 3: Year (Bar)
+    new Chart(document.getElementById("yearChart"), {
+      type: "bar",
+      data: {
+        labels: Object.keys(yearData),
+        datasets: [{
+          label: "Policies by Year",
+          data: Object.values(yearData),
+          backgroundColor: "#0891b2",
+          borderRadius: 6
+        }]
+      },
+      options: {
+        scales: { y: { beginAtZero: true } },
+        plugins: { legend: { display: false } },
+        responsive: true
+      }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>
